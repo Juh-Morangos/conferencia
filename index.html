@@ -1,117 +1,109 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
-  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conferência de Estoque</title>
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 15px; background: #f0f2f5; color: #333; }
-    .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    .header-info { margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-    h2 { color: #075E54; margin-top: 0; }
-    .item-row { display: flex; flex-direction: column; border: 1px solid #e1e4e8; border-radius: 8px; margin-bottom: 12px; padding: 12px; background: #fff; }
-    .product-title { font-weight: bold; margin-bottom: 8px; color: #444; }
-    .inputs-group { display: flex; gap: 15px; }
-    .input-field { flex: 1; }
-    label { font-size: 11px; text-transform: uppercase; color: #888; display: block; margin-bottom: 4px; }
-    input[type="number"] { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-    button { width: 100%; padding: 16px; background: #25D366; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: background 0.3s; }
-    button:hover { background: #128C7E; }
-    #status { color: #d93025; font-weight: bold; text-align: center; }
+    body { font-family: sans-serif; padding: 15px; background: #f0f2f5; }
+    .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    h2 { color: #075E54; text-align: center; }
+    .item-row { border-bottom: 1px solid #eee; padding: 15px 0; display: flex; justify-content: space-between; align-items: center; }
+    .info { flex: 1; }
+    .inputs { display: flex; gap: 10px; }
+    .field { display: flex; flex-direction: column; align-items: center; }
+    label { font-size: 10px; color: #666; font-weight: bold; }
+    input { width: 60px; padding: 8px; border: 1px solid #ccc; border-radius: 5px; text-align: center; }
+    button { width: 100%; padding: 15px; background: #25D366; color: white; border: none; border-radius: 5px; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 20px; }
+    #status { text-align: center; font-weight: bold; color: #666; }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <div class="header-info">
-    <h2>📦 Conferência</h2>
+  <h2>📦 Conferência</h2>
+  <div id="header-meta" style="margin-bottom: 20px; font-size: 14px;">
     <p><b>Data:</b> <span id="dataAtual"></span></p>
-    <p><b>Conferente:</b> <span id="nomeConferente">Buscando...</span></p>
+    <p><b>Conferente:</b> <span id="nomeConferente">Carregando...</span></p>
   </div>
 
-  <div id="listaProdutos"><p id="status">Carregando produtos do estoque...</p></div>
+  <div id="listaProdutos"><p id="status">Buscando produtos da planilha...</p></div>
 
   <button onclick="enviarWhatsApp()">📲 Enviar via WhatsApp</button>
 </div>
 
 <script>
-  let dadosProdutos = [];
+  // 1. COLE AQUI A URL QUE VOCÊ COPIOU DO GOOGLE
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzVb41YY6HX3hGt33Hu28Tm4gnqIp-jRsdsrt7fDKCvAx_ruMxfF-Rhtt901I0COLh2cw/exec";
 
-  // 1. Inicia Data
+  let dadosProdutos = [];
   document.getElementById('dataAtual').innerText = new Date().toLocaleDateString('pt-BR');
 
-  // 2. Chama o Google Script assim que a página abre
-  window.onload = function() {
-    google.script.run
-      .withSuccessHandler(renderizarProdutos)
-      .withFailureHandler(mostrarErro)
-      .getDadosPlanilha();
-  };
+  // 2. Busca os dados da planilha via API
+  async function carregarDados() {
+    try {
+      const response = await fetch(SCRIPT_URL + "?get=produtos");
+      const produtos = await response.json();
+      dadosProdutos = produtos;
+      
+      const lista = document.getElementById('listaProdutos');
+      lista.innerHTML = '';
+      
+      if(produtos.length > 0) {
+        document.getElementById('nomeConferente').innerText = produtos[0].conferente;
+      }
 
-  function mostrarErro(erro) {
-    document.getElementById('listaProdutos').innerHTML = `<p id="status">Erro: ${erro.message}<br>Verifique se você autorizou o script.</p>`;
-  }
-
-  function renderizarProdutos(produtos) {
-    dadosProdutos = produtos;
-    const lista = document.getElementById('listaProdutos');
-    
-    if (!produtos || produtos.length === 0) {
-      lista.innerHTML = '<p id="status">Nenhum produto encontrado na planilha.</p>';
-      return;
+      produtos.forEach((p, index) => {
+        lista.innerHTML += `
+          <div class="item-row">
+            <div class="info">
+              <div style="font-weight:bold">${p.codigo}</div>
+              <div style="font-size:13px">${p.nome}</div>
+            </div>
+            <div class="inputs">
+              <div class="field">
+                <label>QTD</label>
+                <input type="number" id="qtd-${index}" placeholder="0">
+              </div>
+              <div class="field">
+                <label>QUEBRA</label>
+                <input type="number" id="qbr-${index}" placeholder="0">
+              </div>
+            </div>
+          </div>`;
+      });
+    } catch (error) {
+      document.getElementById('status').innerText = "Erro ao conectar com a planilha. Verifique se a URL está correta e se você implantou como 'Qualquer pessoa'.";
+      console.error(error);
     }
-
-    document.getElementById('nomeConferente').innerText = produtos[0].conferente;
-    lista.innerHTML = '';
-
-    produtos.forEach((p, index) => {
-      const div = document.createElement('div');
-      div.className = 'item-row';
-      div.innerHTML = `
-        <div class="product-title">${p.codigo} - ${p.nome}</div>
-        <div class="inputs-group">
-          <div class="input-field">
-            <label>Quantidade</label>
-            <input type="number" id="qtd-${index}" placeholder="0" min="0">
-          </div>
-          <div class="input-field">
-            <label>Quebra</label>
-            <input type="number" id="qbr-${index}" placeholder="0" min="0">
-          </div>
-        </div>
-      `;
-      lista.appendChild(div);
-    });
   }
 
   function enviarWhatsApp() {
-    const data = document.getElementById('dataAtual').innerText;
-    const conferente = document.getElementById('nomeConferente').innerText;
-    
-    let mensagem = `*RELATÓRIO DE CONFERÊNCIA*\n`;
-    mensagem += `📅 Data: ${data}\n`;
-    mensagem += `👤 Conferente: ${conferente}\n`;
-    mensagem += `----------------------------\n\n`;
+    let msg = `*RELATÓRIO DE CONFERÊNCIA*\n`;
+    msg += `📅 Data: ${document.getElementById('dataAtual').innerText}\n`;
+    msg += `👤 Conferente: ${document.getElementById('nomeConferente').innerText}\n`;
+    msg += `----------------------------\n\n`;
 
     let temDados = false;
-
     dadosProdutos.forEach((p, index) => {
-      const qtd = document.getElementById(`qtd-${index}`).value || 0;
-      const qbr = document.getElementById(`qbr-${index}`).value || 0;
-      
-      if (parseInt(qtd) > 0 || parseInt(qbr) > 0) {
+      const q = document.getElementById(`qtd-${index}`).value || 0;
+      const b = document.getElementById(`qbr-${index}`).value || 0;
+      if (q > 0 || b > 0) {
         temDados = true;
-        mensagem += `📦 *${p.nome}*\n`;
-        mensagem += `🔹 Qtd: ${qtd} | ⚠️ Quebra: ${qbr}\n\n`;
+        msg += `✅ *${p.nome}*\nQtd: ${q} | Quebra: ${b}\n\n`;
       }
     });
 
     if (!temDados) {
-      alert("Preencha ao menos uma quantidade antes de enviar!");
+      alert("Por favor, preencha pelo menos um produto.");
       return;
     }
 
-    const url = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
-    window.open(url, '_blank');
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
   }
+
+  // Inicia a busca
+  carregarDados();
 </script>
 
 </body>
