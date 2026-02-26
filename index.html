@@ -5,104 +5,133 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Conferência de Estoque</title>
   <style>
-    body { font-family: sans-serif; padding: 15px; background: #f0f2f5; }
-    .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-    h2 { color: #075E54; text-align: center; }
+    body { font-family: 'Segoe UI', sans-serif; padding: 15px; background: #f0f2f5; color: #333; }
+    .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    h2 { color: #075E54; text-align: center; margin-top: 0; }
+    .header-info { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee; }
+    label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
+    select { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; margin-bottom: 15px; font-size: 16px; }
     .item-row { border-bottom: 1px solid #eee; padding: 15px 0; display: flex; justify-content: space-between; align-items: center; }
-    .info { flex: 1; }
-    .inputs { display: flex; gap: 10px; }
-    .field { display: flex; flex-direction: column; align-items: center; }
-    label { font-size: 10px; color: #666; font-weight: bold; }
-    input { width: 60px; padding: 8px; border: 1px solid #ccc; border-radius: 5px; text-align: center; }
-    button { width: 100%; padding: 15px; background: #25D366; color: white; border: none; border-radius: 5px; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 20px; }
-    #status { text-align: center; font-weight: bold; color: #666; }
+    .product-info { flex: 1; padding-right: 10px; }
+    .inputs-group { display: flex; gap: 8px; }
+    .input-box { display: flex; flex-direction: column; align-items: center; }
+    .input-box label { font-size: 10px; color: #888; text-transform: uppercase; }
+    input[type="number"] { width: 65px; padding: 8px; border: 1px solid #ddd; border-radius: 5px; text-align: center; font-size: 16px; }
+    button { width: 100%; padding: 16px; background: #25D366; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 25px; transition: 0.3s; }
+    button:hover { background: #128C7E; }
+    #status { text-align: center; color: #666; font-style: italic; }
   </style>
 </head>
 <body>
 
 <div class="container">
   <h2>📦 Conferência</h2>
-  <div id="header-meta" style="margin-bottom: 20px; font-size: 14px;">
-    <p><b>Data:</b> <span id="dataAtual"></span></p>
-    <p><b>Conferente:</b> <span id="nomeConferente">Carregando...</span></p>
+  
+  <div class="header-info">
+    <p><b>📅 Data:</b> <span id="dataAtual"></span></p>
+    <label for="selectConferente">👤 Selecione o Conferente:</label>
+    <select id="selectConferente">
+      <option value="">Carregando nomes...</option>
+    </select>
   </div>
 
-  <div id="listaProdutos"><p id="status">Buscando produtos da planilha...</p></div>
+  <div id="listaProdutos">
+    <p id="status">Buscando produtos da planilha...</p>
+  </div>
 
   <button onclick="enviarWhatsApp()">📲 Enviar via WhatsApp</button>
 </div>
 
 <script>
-  // 1. COLE AQUI A URL QUE VOCÊ COPIOU DO GOOGLE
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzVb41YY6HX3hGt33Hu28Tm4gnqIp-jRsdsrt7fDKCvAx_ruMxfF-Rhtt901I0COLh2cw/exec";
+  // 1. COLOQUE AQUI A SUA URL DO GOOGLE APPS SCRIPT
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzJ_izKpZ_uWz_CU6HL96zPQCxY7yujZ99BAo9czJ6XeQMi1zj_Jq5fyLWyQoiPaNLLJQ/exec";
 
   let dadosProdutos = [];
   document.getElementById('dataAtual').innerText = new Date().toLocaleDateString('pt-BR');
 
-  // 2. Busca os dados da planilha via API
   async function carregarDados() {
     try {
       const response = await fetch(SCRIPT_URL + "?get=produtos");
-      const produtos = await response.json();
-      dadosProdutos = produtos;
+      const data = await response.json();
       
+      if (data.error) throw new Error(data.error);
+
+      // Preencher Select de Conferentes
+      const select = document.getElementById('selectConferente');
+      select.innerHTML = '<option value="">-- Selecione --</option>';
+      data.conferentes.forEach(nome => {
+        const opt = document.createElement('option');
+        opt.value = nome;
+        opt.text = nome;
+        select.appendChild(opt);
+      });
+
+      // Renderizar Produtos
+      dadosProdutos = data.produtos;
       const lista = document.getElementById('listaProdutos');
       lista.innerHTML = '';
-      
-      if(produtos.length > 0) {
-        document.getElementById('nomeConferente').innerText = produtos[0].conferente;
-      }
 
-      produtos.forEach((p, index) => {
+      dadosProdutos.forEach((p, index) => {
         lista.innerHTML += `
           <div class="item-row">
-            <div class="info">
-              <div style="font-weight:bold">${p.codigo}</div>
-              <div style="font-size:13px">${p.nome}</div>
+            <div class="product-info">
+              <div style="font-weight:bold; color:#075E54;">${p.codigo}</div>
+              <div style="font-size:14px;">${p.nome}</div>
             </div>
-            <div class="inputs">
-              <div class="field">
-                <label>QTD</label>
-                <input type="number" id="qtd-${index}" placeholder="0">
+            <div class="inputs-group">
+              <div class="input-box">
+                <label>Qtd</label>
+                <input type="number" id="qtd-${index}" min="0" placeholder="0">
               </div>
-              <div class="field">
-                <label>QUEBRA</label>
-                <input type="number" id="qbr-${index}" placeholder="0">
+              <div class="input-box">
+                <label>Quebra</label>
+                <input type="number" id="qbr-${index}" min="0" placeholder="0" style="border-color: #ffcccc;">
               </div>
             </div>
           </div>`;
       });
+
     } catch (error) {
-      document.getElementById('status').innerText = "Erro ao conectar com a planilha. Verifique se a URL está correta e se você implantou como 'Qualquer pessoa'.";
+      document.getElementById('listaProdutos').innerHTML = `<p id="status" style="color:red">Erro ao carregar dados. Verifique a URL e permissões.</p>`;
       console.error(error);
     }
   }
 
   function enviarWhatsApp() {
-    let msg = `*RELATÓRIO DE CONFERÊNCIA*\n`;
-    msg += `📅 Data: ${document.getElementById('dataAtual').innerText}\n`;
-    msg += `👤 Conferente: ${document.getElementById('nomeConferente').innerText}\n`;
-    msg += `----------------------------\n\n`;
+    const conferente = document.getElementById('selectConferente').value;
+    const data = document.getElementById('dataAtual').innerText;
+
+    if (!conferente) {
+      alert("⚠️ Por favor, selecione um conferente antes de enviar!");
+      return;
+    }
+
+    let mensagem = `*RELATÓRIO DE CONFERÊNCIA*\n`;
+    mensagem += `📅 Data: ${data}\n`;
+    mensagem += `👤 Conferente: ${conferente}\n`;
+    mensagem += `----------------------------\n\n`;
 
     let temDados = false;
     dadosProdutos.forEach((p, index) => {
       const q = document.getElementById(`qtd-${index}`).value || 0;
       const b = document.getElementById(`qbr-${index}`).value || 0;
-      if (q > 0 || b > 0) {
+      
+      if (parseInt(q) > 0 || parseInt(b) > 0) {
         temDados = true;
-        msg += `✅ *${p.nome}*\nQtd: ${q} | Quebra: ${b}\n\n`;
+        mensagem += `📦 *${p.nome}*\n`;
+        mensagem += `🔹 Qtd: ${q} | ⚠️ Qbra: ${b}\n\n`;
       }
     });
 
     if (!temDados) {
-      alert("Por favor, preencha pelo menos um produto.");
+      alert("❌ Preencha pelo menos um item da lista.");
       return;
     }
 
-    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+    const url = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
+    window.open(url, '_blank');
   }
 
-  // Inicia a busca
   carregarDados();
 </script>
 
