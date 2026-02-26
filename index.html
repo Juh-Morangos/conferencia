@@ -1,88 +1,113 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <base target="_top">
   <style>
-    body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
-    .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 15px; background: #f0f2f5; color: #333; }
+    .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     .header-info { margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-    .item-row { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
-    .product-info { flex-grow: 1; }
-    .inputs { display: flex; gap: 5px; }
-    input[type="number"] { width: 70px; padding: 5px; }
-    button { width: 100%; padding: 15px; background: #25D366; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
-    label { font-size: 0.8em; color: #666; }
+    h2 { color: #075E54; margin-top: 0; }
+    .item-row { display: flex; flex-direction: column; border: 1px solid #e1e4e8; border-radius: 8px; margin-bottom: 12px; padding: 12px; background: #fff; }
+    .product-title { font-weight: bold; margin-bottom: 8px; color: #444; }
+    .inputs-group { display: flex; gap: 15px; }
+    .input-field { flex: 1; }
+    label { font-size: 11px; text-transform: uppercase; color: #888; display: block; margin-bottom: 4px; }
+    input[type="number"] { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    button { width: 100%; padding: 16px; background: #25D366; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: background 0.3s; }
+    button:hover { background: #128C7E; }
+    #status { color: #d93025; font-weight: bold; text-align: center; }
   </style>
 </head>
 <body>
 
 <div class="container">
   <div class="header-info">
-    <h2>Conferência</h2>
-    <p>Data: <span id="dataAtual"></span></p>
-    <p>Conferente: <b id="nomeConferente">Carregando...</b></p>
+    <h2>📦 Conferência</h2>
+    <p><b>Data:</b> <span id="dataAtual"></span></p>
+    <p><b>Conferente:</b> <span id="nomeConferente">Buscando...</span></p>
   </div>
 
-  <div id="listaProdutos">Carregando produtos...</div>
+  <div id="listaProdutos"><p id="status">Carregando produtos do estoque...</p></div>
 
-  <button onclick="enviarWhatsApp()">Enviar via WhatsApp</button>
+  <button onclick="enviarWhatsApp()">📲 Enviar via WhatsApp</button>
 </div>
 
 <script>
   let dadosProdutos = [];
 
-  // Define a data de hoje
+  // 1. Inicia Data
   document.getElementById('dataAtual').innerText = new Date().toLocaleDateString('pt-BR');
 
-  // Busca dados do Apps Script ao carregar
-  google.script.run.withSuccessHandler(renderizarProdutos).getDadosPlanilha();
+  // 2. Chama o Google Script assim que a página abre
+  window.onload = function() {
+    google.script.run
+      .withSuccessHandler(renderizarProdutos)
+      .withFailureHandler(mostrarErro)
+      .getDadosPlanilha();
+  };
+
+  function mostrarErro(erro) {
+    document.getElementById('listaProdutos').innerHTML = `<p id="status">Erro: ${erro.message}<br>Verifique se você autorizou o script.</p>`;
+  }
 
   function renderizarProdutos(produtos) {
     dadosProdutos = produtos;
     const lista = document.getElementById('listaProdutos');
-    lista.innerHTML = '';
     
-    if(produtos.length > 0) {
-      document.getElementById('nomeConferente').innerText = produtos[0].conferente;
+    if (!produtos || produtos.length === 0) {
+      lista.innerHTML = '<p id="status">Nenhum produto encontrado na planilha.</p>';
+      return;
     }
 
+    document.getElementById('nomeConferente').innerText = produtos[0].conferente;
+    lista.innerHTML = '';
+
     produtos.forEach((p, index) => {
-      lista.innerHTML += `
-        <div class="item-row">
-          <div class="product-info">
-            <strong>${p.codigo}</strong> - ${p.nome}
+      const div = document.createElement('div');
+      div.className = 'item-row';
+      div.innerHTML = `
+        <div class="product-title">${p.codigo} - ${p.nome}</div>
+        <div class="inputs-group">
+          <div class="input-field">
+            <label>Quantidade</label>
+            <input type="number" id="qtd-${index}" placeholder="0" min="0">
           </div>
-          <div class="inputs">
-            <div>
-              <label>Qtd</label><br>
-              <input type="number" id="qtd-${index}" placeholder="0">
-            </div>
-            <div>
-              <label>Quebra</label><br>
-              <input type="number" id="qbr-${index}" placeholder="0">
-            </div>
+          <div class="input-field">
+            <label>Quebra</label>
+            <input type="number" id="qbr-${index}" placeholder="0" min="0">
           </div>
         </div>
       `;
+      lista.appendChild(div);
     });
   }
 
   function enviarWhatsApp() {
     const data = document.getElementById('dataAtual').innerText;
     const conferente = document.getElementById('nomeConferente').innerText;
-    let mensagem = `*Relatório de Conferência*\n`;
-    mensagem += `Data: ${data}\n`;
-    mensagem += `Conferente: ${conferente}\n`;
-    mensagem += `----------------------------\n`;
+    
+    let mensagem = `*RELATÓRIO DE CONFERÊNCIA*\n`;
+    mensagem += `📅 Data: ${data}\n`;
+    mensagem += `👤 Conferente: ${conferente}\n`;
+    mensagem += `----------------------------\n\n`;
+
+    let temDados = false;
 
     dadosProdutos.forEach((p, index) => {
       const qtd = document.getElementById(`qtd-${index}`).value || 0;
       const qbr = document.getElementById(`qbr-${index}`).value || 0;
       
-      if(qtd > 0 || qbr > 0) {
-        mensagem += `*Prod:* ${p.nome}\n`;
-        mensagem += `Qtd: ${qtd} | Quebra: ${qbr}\n\n`;
+      if (parseInt(qtd) > 0 || parseInt(qbr) > 0) {
+        temDados = true;
+        mensagem += `📦 *${p.nome}*\n`;
+        mensagem += `🔹 Qtd: ${qtd} | ⚠️ Quebra: ${qbr}\n\n`;
       }
     });
+
+    if (!temDados) {
+      alert("Preencha ao menos uma quantidade antes de enviar!");
+      return;
+    }
 
     const url = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
     window.open(url, '_blank');
