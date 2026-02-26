@@ -5,131 +5,154 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Conferência de Estoque</title>
   <style>
-    body { font-family: 'Segoe UI', sans-serif; padding: 15px; background: #f0f2f5; color: #333; }
-    .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-    h2 { color: #075E54; text-align: center; margin-top: 0; }
-    .header-info { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee; }
-    label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
-    select { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; margin-bottom: 15px; font-size: 16px; }
-    .item-row { border-bottom: 1px solid #eee; padding: 15px 0; display: flex; justify-content: space-between; align-items: center; }
-    .product-info { flex: 1; padding-right: 10px; }
+    body { 
+      font-family: 'Segoe UI', sans-serif; 
+      margin: 0; padding: 0;
+      background: #f0f2f5; color: #333;
+      display: flex; flex-direction: column; height: 100vh;
+    }
+    
+    .header-fixed { padding: 15px; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 10; }
+    h2 { color: #075E54; text-align: center; margin: 0 0 10px 0; }
+    
+    .header-info { background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #eee; font-size: 14px; }
+    label { display: block; font-weight: bold; margin-bottom: 5px; }
+    select, textarea { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
+
+    .scrollable-content { flex: 1; overflow-y: auto; padding: 15px; }
+    .container { max-width: 500px; margin: auto; }
+
+    .item-row { 
+      background: white; border-radius: 8px; margin-bottom: 10px; padding: 15px; 
+      display: flex; justify-content: space-between; align-items: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
     .inputs-group { display: flex; gap: 8px; }
     .input-box { display: flex; flex-direction: column; align-items: center; }
     .input-box label { font-size: 10px; color: #888; text-transform: uppercase; }
-    input[type="number"] { width: 65px; padding: 8px; border: 1px solid #ddd; border-radius: 5px; text-align: center; font-size: 16px; }
-    button { width: 100%; padding: 16px; background: #25D366; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 25px; transition: 0.3s; }
-    button:hover { background: #128C7E; }
-    #status { text-align: center; color: #666; font-style: italic; }
+    input[type="number"] { width: 60px; padding: 8px; border: 1px solid #ddd; border-radius: 5px; text-align: center; font-size: 16px; }
+
+    .footer-fixed { padding: 15px; background: white; border-top: 1px solid #eee; z-index: 10; }
+    .btn-enviar { width: 100%; max-width: 500px; display: block; margin: auto; padding: 16px; background: #25D366; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; }
+
+    /* Estilos do Modal de Revisão */
+    .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); }
+    .modal-content { background: white; margin: 10% auto; padding: 20px; border-radius: 12px; width: 90%; max-width: 450px; max-height: 80vh; overflow-y: auto; }
+    .revisao-texto { white-space: pre-wrap; background: #f9f9f9; padding: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 20px; }
+    .modal-btns { display: flex; gap: 10px; }
+    .btn-confirmar { flex: 2; background: #25D366; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    .btn-corrigir { flex: 1; background: #666; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
   </style>
 </head>
 <body>
 
-<div class="container">
-  <h2>📦 Conferência</h2>
-  
-  <div class="header-info">
-    <p><b>📅 Data:</b> <span id="dataAtual"></span></p>
-    <label for="selectConferente">👤 Selecione o Conferente:</label>
-    <select id="selectConferente">
-      <option value="">Carregando nomes...</option>
-    </select>
+<div class="header-fixed">
+  <div class="container">
+    <h2>📦 Conferência</h2>
+    <div class="header-info">
+      <p style="margin: 0 0 10px 0;"><b>📅 Data:</b> <span id="dataAtual"></span></p>
+      <label>👤 Conferente:</label>
+      <select id="selectConferente"><option value="">Carregando nomes...</option></select>
+    </div>
   </div>
+</div>
 
-  <div id="listaProdutos">
-    <p id="status">Buscando produtos da planilha...</p>
+<div class="scrollable-content">
+  <div class="container">
+    <div id="listaProdutos"><p style="text-align:center;">Buscando produtos...</p></div>
+    
+    <div style="margin-top: 20px;">
+      <label>📝 Observações Gerais:</label>
+      <textarea id="obsGeral" rows="3" placeholder="Ex: Carga com avaria na lateral..."></textarea>
+    </div>
   </div>
+</div>
 
-  <button onclick="enviarWhatsApp()">📲 Enviar via WhatsApp</button>
+<div class="footer-fixed">
+  <button class="btn-enviar" onclick="abrirRevisao()">📋 Revisar e Enviar</button>
+</div>
+
+<div id="modalRevisao" class="modal">
+  <div class="modal-content">
+    <h3>Revisar Dados</h3>
+    <div id="corpoRevisao" class="revisao-texto"></div>
+    <div class="modal-btns">
+      <button class="btn-corrigir" onclick="fecharRevisao()">Corrigir</button>
+      <button class="btn-confirmar" onclick="confirmarEEnviar()">Tudo Certo, Enviar!</button>
+    </div>
+  </div>
 </div>
 
 <script>
-  // 1. COLOQUE AQUI A SUA URL DO GOOGLE APPS SCRIPT
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyhTl3okNtfIJgyjdZl34x0Kw8nssJfOC7dqChaIsV1GIZx3j5iU5vZhYLe1WryQ3L4gA/exec";
+  const MEU_WHATSAPP = "5516991251990";
 
   let dadosProdutos = [];
+  let mensagemFinal = "";
+
   document.getElementById('dataAtual').innerText = new Date().toLocaleDateString('pt-BR');
 
   async function carregarDados() {
     try {
       const response = await fetch(SCRIPT_URL + "?get=produtos");
       const data = await response.json();
-      
-      if (data.error) throw new Error(data.error);
-
-      // Preencher Select de Conferentes
       const select = document.getElementById('selectConferente');
       select.innerHTML = '<option value="">-- Selecione --</option>';
       data.conferentes.forEach(nome => {
-        const opt = document.createElement('option');
-        opt.value = nome;
-        opt.text = nome;
-        select.appendChild(opt);
+        let opt = document.createElement('option');
+        opt.value = nome; opt.text = nome; select.appendChild(opt);
       });
-
-      // Renderizar Produtos
       dadosProdutos = data.produtos;
       const lista = document.getElementById('listaProdutos');
       lista.innerHTML = '';
-
       dadosProdutos.forEach((p, index) => {
         lista.innerHTML += `
           <div class="item-row">
-            <div class="product-info">
-              <div style="font-weight:bold; color:#075E54;">${p.codigo}</div>
-              <div style="font-size:14px;">${p.nome}</div>
-            </div>
+            <div style="flex:1"><b>${p.codigo}</b><br><small>${p.nome}</small></div>
             <div class="inputs-group">
-              <div class="input-box">
-                <label>Qtd</label>
-                <input type="number" id="qtd-${index}" min="0" placeholder="0">
-              </div>
-              <div class="input-box">
-                <label>Quebra</label>
-                <input type="number" id="qbr-${index}" min="0" placeholder="0" style="border-color: #ffcccc;">
-              </div>
+              <div class="input-box"><label>Qtd</label><input type="number" id="qtd-${index}" placeholder="0"></div>
+              <div class="input-box"><label>Qbra</label><input type="number" id="qbr-${index}" placeholder="0"></div>
             </div>
           </div>`;
       });
-
-    } catch (error) {
-      document.getElementById('listaProdutos').innerHTML = `<p id="status" style="color:red">Erro ao carregar dados. Verifique a URL e permissões.</p>`;
-      console.error(error);
-    }
+    } catch (e) { document.getElementById('listaProdutos').innerText = "Erro ao carregar dados."; }
   }
 
-  function enviarWhatsApp() {
+  function abrirRevisao() {
     const conferente = document.getElementById('selectConferente').value;
-    const data = document.getElementById('dataAtual').innerText;
+    const obs = document.getElementById('obsGeral').value;
+    if (!conferente) return alert("Selecione um conferente!");
 
-    if (!conferente) {
-      alert("⚠️ Por favor, selecione um conferente antes de enviar!");
-      return;
-    }
-
-    let mensagem = `*RELATÓRIO DE CONFERÊNCIA*\n`;
-    mensagem += `📅 Data: ${data}\n`;
-    mensagem += `👤 Conferente: ${conferente}\n`;
-    mensagem += `----------------------------\n\n`;
+    let msg = `*RELATÓRIO DE CONFERÊNCIA*\n`;
+    msg += `📅 Data: ${document.getElementById('dataAtual').innerText}\n`;
+    msg += `👤 Conferente: ${conferente}\n`;
+    msg += `----------------------------\n\n`;
 
     let temDados = false;
     dadosProdutos.forEach((p, index) => {
       const q = document.getElementById(`qtd-${index}`).value || 0;
       const b = document.getElementById(`qbr-${index}`).value || 0;
-      
-      if (parseInt(q) > 0 || parseInt(b) > 0) {
+      if (q > 0 || b > 0) {
         temDados = true;
-        mensagem += `📦 *${p.nome}*\n`;
-        mensagem += `🔹 Qtd: ${q} | ⚠️ Qbra: ${b}\n\n`;
+        msg += `📦 *${p.nome}*\nQtd: ${q} | Qbra: ${b}\n\n`;
       }
     });
 
-    if (!temDados) {
-      alert("❌ Preencha pelo menos um item da lista.");
-      return;
-    }
+    if (obs) msg += `📝 *Obs:* ${obs}\n`;
+    if (!temDados) return alert("Preencha ao menos um item!");
 
-    const url = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
+    mensagemFinal = msg;
+    document.getElementById('corpoRevisao').innerText = msg;
+    document.getElementById('modalRevisao').style.display = 'block';
+  }
+
+  function fecharRevisao() { document.getElementById('modalRevisao').style.display = 'none'; }
+
+  function confirmarEEnviar() {
+    const url = `https://api.whatsapp.com/send?phone=${MEU_WHATSAPP}&text=${encodeURIComponent(mensagemFinal)}`;
     window.open(url, '_blank');
+    fecharRevisao();
   }
 
   carregarDados();
